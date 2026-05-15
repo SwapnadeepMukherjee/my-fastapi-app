@@ -192,9 +192,5 @@ Contributions are welcome! Please follow these guidelines:
 
 This project is open source. See LICENSE file for details (if applicable).
 
-## Support
-
-For issues or questions:
-- Open a GitHub Issue
-- Check the [FastAPI documentation](https://fastapi.tiangolo.com/)
-- Review the [Docker documentation](https://docs.docker.com/)
+**Swapnadeep Mukherjee**  
+GitHub: [@SwapnadeepMukherjee](https://github.com/SwapnadeepMukherjee)
