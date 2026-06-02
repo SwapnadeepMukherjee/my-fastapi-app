@@ -3,38 +3,46 @@ name: Deploy to Amazon ECR
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}                   # "ap-south-1"
   ECR_REPOSITORY: my-fastapi-app                       # Your repo name
   IMAGE_TAG: ${{ github.sha }}                         # Unique commit hash
 
+# Core Security Principle: Minimize GitHub Token Privileges globally permissions:
 permissions:
   id-token: write   # REQUIRED for requesting the OIDC JWT
   contents: read    # Required for actions/checkout
 
 jobs:
   build-and-push:
+    name: Build, Secure, and Ship
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Check out your code
+    # 1. Checkout your code:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2. Authenticate to AWS using OIDC (No keys!)
+    # 2. Authenticate with AWS via OpenID Connect (OIDC):
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
-    # 3. Log into Amazon ECR
+    # 3. Authenticate Docker CLI against private ECR Registry:
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
-    # 4. Build, tag, and push image to Amazon ECR
+    # 4. Set up Docker Buildx for advanced layer caching options
+    # - name: Set up Docker Buildx
+    #   uses: docker/setup-buildx-action@v3
+
+    # 5. Build, tag, and push image to Amazon ECR:
     - name: Build and push Docker image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
