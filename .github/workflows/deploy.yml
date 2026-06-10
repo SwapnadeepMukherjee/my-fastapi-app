@@ -17,41 +17,64 @@ permissions:
   contents: read    # Required for actions/checkout
 
 jobs:
-  build-and-push:
-    name: Build, Secure, and Ship
+  validate:
+    name: Python Code Quality & Testing 
     runs-on: ubuntu-latest
-
     steps:
-    # 1. Checkout your code:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    # 2. Authenticate with AWS via OpenID Connect (OIDC):
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
       with:
-        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-        aws-region: ${{ env.AWS_REGION }}
-
-    # 3. Authenticate Docker CLI against private ECR Registry:
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-
-    # 4. Set up Docker Buildx for advanced layer caching options
-    # - name: Set up Docker Buildx
-    #   uses: docker/setup-buildx-action@v3
-
-    # 5. Build, tag, and push image to Amazon ECR:
-    - name: Build and push Docker image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        python-version: 3.11
+    - name: Install dependencies
       run: |
-        # Build the image with two tags: Unique SHA and Latest
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-        
-        # Push both tags
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        
-        echo "::notice::Image pushed successfully to $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+        python -m pip install --upgrade pip
+        # pip install -r requirements.txt
+        pip install flake8 pytest pytest-cov checkov
+        pip install coverage
+    - name: Lint Python (flake8)
+      run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    - name: Static Analysis (checkov)
+      run: checkov -d . --framework terraform --soft-fail
+    # - name: Run tests with coverage
+    #   run: |
+    #     export COVERAGE_PROCESS_START=.coveragerc
+    #     pytest --cov=src tests/ --cov-fail-under=80
+  
+  build-and-deploy:
+    name: Build & Push Docker Image to AWS ECR
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      # Authenticate with AWS via OpenID Connect (OIDC):
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Authenticate Docker CLI against private ECR Registry:
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Set up Docker Buildx for advanced layer caching options
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v3
+
+      # Build, tag, and push image to Amazon ECR:
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          # Build the image with two tags: Unique SHA and Latest
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          
+          # Push both tags
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          
+          echo "::notice::Image pushed successfully to $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
