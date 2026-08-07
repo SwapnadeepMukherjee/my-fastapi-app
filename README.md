@@ -21,8 +21,8 @@ This is a FastAPI application designed for easy deployment to AWS using Docker a
 
 ## Technology Stack
 
-- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) 0.109.0
-- **ASGI Server**: [Uvicorn](https://www.uvicorn.org/) 0.27.0
+- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) 0.141.1
+- **ASGI Server**: [Uvicorn](https://www.uvicorn.org/) 0.52.1
 - **Containerization**: Docker (Python 3.11-slim-bookworm)
 - **CI/CD**: GitHub Actions
 - **Registry**: Amazon ECR (Elastic Container Registry)
@@ -33,14 +33,17 @@ This is a FastAPI application designed for easy deployment to AWS using Docker a
 ```
 my-fastapi-app/
 ├── app/
+│   ├── __init__.py
 │   └── main.py              # FastAPI application entry point
+├── tests/
+│   └── test_main.py         # Smoke tests
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml       # GitHub Actions deployment workflow
+│       └── deploy.yml       # GitHub Actions CI/CD workflow
 ├── Dockerfile               # Multi-stage Docker build configuration
 ├── .dockerignore            # Docker build exclusions
 ├── requirements.txt         # Python dependencies
-├── deploy.yml               # Deployment configuration (legacy)
+├── LICENSE                  # MIT License
 └── README.md                # This file
 ```
 
@@ -85,6 +88,15 @@ The API will be available at `http://localhost:8000`
 
 - **API Documentation (Swagger UI)**: http://localhost:8000/docs
 - **Alternative Documentation (ReDoc)**: http://localhost:8000/redoc
+
+## Running Tests
+
+Install the test dependencies and run pytest with coverage:
+
+```bash
+pip install pytest pytest-cov httpx
+python -m pytest --cov=app tests/ --cov-fail-under=80
+```
 
 ## Docker
 
@@ -190,7 +202,7 @@ Contributions are welcome! Please follow these guidelines:
 
 ## License
 
-This project is open source. See LICENSE file for details (if applicable).
+This project is licensed under the [MIT License](LICENSE).
 
 **Swapnadeep Mukherjee**  
 GitHub: [@SwapnadeepMukherjee](https://github.com/SwapnadeepMukherjee)

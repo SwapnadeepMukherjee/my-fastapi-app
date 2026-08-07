@@ -18,28 +18,29 @@ permissions:
 
 jobs:
   validate:
-    name: Python Code Quality & Testing 
+    name: Python Code Quality & Testing
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+
     - name: Set up Python 3.11
       uses: actions/setup-python@v4
+
       with:
         python-version: 3.11
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # pip install -r requirements.txt
-        pip install flake8 pytest pytest-cov checkov
-        pip install coverage
+        pip install -r requirements.txt
+        pip install flake8 pytest pytest-cov httpx
+
     - name: Lint Python (flake8)
       run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-    - name: Static Analysis (checkov)
-      run: checkov -d . --framework terraform --soft-fail
-    # - name: Run tests with coverage
-    #   run: |
-    #     export COVERAGE_PROCESS_START=.coveragerc
-    #     pytest --cov=src tests/ --cov-fail-under=80
-  
+
+    - name: Run tests with coverage
+      run: python -m pytest --cov=app tests/ --cov-fail-under=80
+        
   build-and-deploy:
     name: Build & Push Docker Image to AWS ECR
     needs: validate
